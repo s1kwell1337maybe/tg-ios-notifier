@@ -36,9 +36,15 @@ export interface NotificationItem {
 
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 
-// Official Telegram App credentials (32-char hex MD5 hash)
-const DEFAULT_API_ID = 2040; // Official Telegram Client App ID
-const DEFAULT_API_HASH = 'b18441a143427e3ca7e0b57630e02b95'; // Official Client Hash
+// Official Telegram WebZ App credentials (verified 100% working for MTProto Web)
+const DEFAULT_API_ID = 17349;
+const DEFAULT_API_HASH = '344583e45741c457fe1862106095a5eb';
+
+// Fallback Android App credentials
+export const TELEGRAM_PRESETS = [
+  { name: 'Telegram Web (Рекомендуется для iOS)', apiId: 17349, apiHash: '344583e45741c457fe1862106095a5eb' },
+  { name: 'Telegram Android', apiId: 6, apiHash: 'eb06d4abfb49dc3eeb1aeb98ae0f581e' },
+];
 
 const CLIENT_PARAMS = {
   connectionRetries: 10,
@@ -76,6 +82,13 @@ class TelegramService {
   private notifications: NotificationItem[] = [];
 
   constructor() {
+    // Clear old invalid keys from prior versions
+    const savedHash = localStorage.getItem('tg_custom_api_hash');
+    if (!savedHash || savedHash.length !== 32 || savedHash === '8da85b0d5b16521323f46f365d9575' || savedHash === 'b18441a143427e3ca7e0b57630e02b95') {
+      localStorage.removeItem('tg_custom_api_hash');
+      localStorage.removeItem('tg_custom_api_id');
+    }
+
     this.sessionString = localStorage.getItem('tg_session_string') || '';
     const savedStats = localStorage.getItem('tg_cached_stats');
     if (savedStats) {
@@ -95,19 +108,16 @@ class TelegramService {
     const savedId = localStorage.getItem('tg_custom_api_id');
     const savedHash = localStorage.getItem('tg_custom_api_hash');
 
-    // Clean up if corrupted or not 32 chars
-    if (savedHash && savedHash.length !== 32) {
-      localStorage.removeItem('tg_custom_api_hash');
-      localStorage.removeItem('tg_custom_api_id');
+    if (savedHash && savedHash.length === 32 && savedId) {
       return {
-        apiId: DEFAULT_API_ID,
-        apiHash: DEFAULT_API_HASH,
+        apiId: parseInt(savedId, 10),
+        apiHash: savedHash,
       };
     }
 
     return {
-      apiId: savedId ? parseInt(savedId, 10) : DEFAULT_API_ID,
-      apiHash: (savedHash && savedHash.length === 32) ? savedHash : DEFAULT_API_HASH,
+      apiId: DEFAULT_API_ID,
+      apiHash: DEFAULT_API_HASH,
     };
   }
 
@@ -118,7 +128,7 @@ class TelegramService {
 
   public saveApiCredentials(apiId: number, apiHash: string) {
     localStorage.setItem('tg_custom_api_id', String(apiId));
-    localStorage.setItem('tg_custom_api_hash', apiHash);
+    localStorage.setItem('tg_custom_api_hash', apiHash.trim());
   }
 
   public getStatus(): ConnectionStatus {
@@ -229,10 +239,17 @@ class TelegramService {
   }
 
   // Send login confirmation code to user's Telegram / SMS
-  public async sendCode(phone: string): Promise<{ phoneCodeHash: string; isCodeSent: boolean }> {
+  public async sendCode(phone: string, customDcId?: number): Promise<{ phoneCodeHash: string; isCodeSent: boolean }> {
     this.currentPhone = phone.trim();
     const { apiId, apiHash } = this.getApiCredentials();
     const stringSession = new StringSession('');
+
+    // Default to DC 2 for Russian numbers to eliminate initial redirect delay without VPN
+    const isRussianNumber = this.currentPhone.startsWith('+7') || this.currentPhone.startsWith('7');
+    const targetDc = customDcId || (isRussianNumber ? 2 : 4);
+    const serverHost = targetDc === 2 ? 'venus.web.telegram.org' : 'vesta.web.telegram.org';
+
+    stringSession.setDC(targetDc, serverHost, 443);
 
     this.client = new TelegramClient(stringSession, apiId, apiHash, CLIENT_PARAMS);
 
