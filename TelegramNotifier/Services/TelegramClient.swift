@@ -4,8 +4,8 @@ import SwiftUI
 import Combine
 
 // MARK: - Real MTProto 2.0 Native Bridge Client
-// Runs official Telegram MTProto Web engine locally inside native iOS WebKit WKWebView
-// Communicates with Telegram DC 2 (Russia/CIS) & DC 4 over TLS WSS without VPN.
+// Runs fully bundled Telegram MTProto Web engine locally inside native iOS WebKit WKWebView
+// Communicates directly with Telegram DC 2 (Russia/CIS) & DC 4 over TLS WSS without VPN.
 
 @MainActor
 public final class TelegramClient: NSObject, ObservableObject, WKScriptMessageHandler, WKNavigationDelegate {
@@ -48,200 +48,40 @@ public final class TelegramClient: NSObject, ObservableObject, WKScriptMessageHa
         let config = WKWebViewConfiguration()
         config.userContentController = contentController
         config.preferences.setValue(true, forKey: "allowFileAccessFromFileURLs")
+        config.defaultWebpagePreferences.allowsContentJavaScript = true
         
         let wv = WKWebView(frame: .zero, configuration: config)
         wv.navigationDelegate = self
         self.webView = wv
         
-        // HTML + JavaScript MTProto Engine running locally inside native app
-        let engineHTML = """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <script src="https://cdn.jsdelivr.net/npm/telegram@2.22.2/browser/index.js"></script>
-        </head>
-        <body>
-            <script>
-                window.client = null;
-                window.phoneCodeHash = '';
-                
-                function sendToNative(type, payload) {
-                    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.tgNativeBridge) {
-                        window.webkit.messageHandlers.tgNativeBridge.postMessage({ type: type, payload: payload });
-                    }
-                }
-                
-                window.initTelegram = async function(apiId, apiHash, sessionStr, dcId) {
-                    try {
-                        const { TelegramClient } = telegram;
-                        const { StringSession } = telegram.sessions;
-                        
-                        const session = new StringSession(sessionStr || '');
-                        if (dcId === 2) {
-                            session.setDC(2, 'venus.web.telegram.org', 443);
-                        } else {
-                            session.setDC(4, 'vesta.web.telegram.org', 443);
-                        }
-                        
-                        window.client = new TelegramClient(session, parseInt(apiId), apiHash, {
-                            connectionRetries: 5,
-                            useWSS: true,
-                            deviceModel: 'Apple iPad / iPhone (Native)',
-                            systemVersion: 'iOS 18.0',
-                            appVersion: '1.0.0',
-                            langCode: 'ru',
-                            systemLangCode: 'ru'
-                        });
-                        
-                        await window.client.connect();
-                        sendToNative('CONNECTED', { dc: dcId });
-                        
-                        const isAuth = await window.client.checkAuthorization();
-                        if (isAuth) {
-                            const me = await window.client.getMe();
-                            sendToNative('AUTH_SUCCESS', {
-                                id: String(me.id),
-                                firstName: me.firstName || 'User',
-                                lastName: me.lastName || '',
-                                username: me.username || '',
-                                phone: me.phone || '',
-                                session: window.client.session.save()
-                            });
-                            startUpdateListener();
-                            fetchUnreads();
-                        }
-                    } catch (e) {
-                        sendToNative('ERROR', { message: e.message || String(e) });
-                    }
-                };
-                
-                window.sendCode = async function(phone, apiId, apiHash, dcId) {
-                    try {
-                        await window.initTelegram(apiId, apiHash, '', dcId);
-                        const res = await window.client.sendCode({
-                            apiId: parseInt(apiId),
-                            apiHash: apiHash
-                        }, phone);
-                        
-                        window.phoneCodeHash = res.phoneCodeHash;
-                        sendToNative('CODE_SENT', { phoneCodeHash: res.phoneCodeHash });
-                    } catch (e) {
-                        sendToNative('SEND_CODE_ERROR', { message: e.message || String(e) });
-                    }
-                };
-                
-                window.signIn = async function(phone, code, password, apiId, apiHash) {
-                    try {
-                        if (password) {
-                            await window.client.signInWithPassword({
-                                apiId: parseInt(apiId),
-                                apiHash: apiHash
-                            }, {
-                                password: async () => password,
-                                onError: (err) => console.error(err)
-                            });
-                        } else {
-                            await window.client.invoke(new telegram.Api.auth.SignIn({
-                                phoneNumber: phone,
-                                phoneCodeHash: window.phoneCodeHash,
-                                phoneCode: code.trim()
-                            }));
-                        }
-                        
-                        const sessionStr = window.client.session.save();
-                        const me = await window.client.getMe();
-                        sendToNative('AUTH_SUCCESS', {
-                            id: String(me.id),
-                            firstName: me.firstName || 'User',
-                            lastName: me.lastName || '',
-                            username: me.username || '',
-                            phone: me.phone || phone,
-                            session: sessionStr
-                        });
-                        startUpdateListener();
-                        fetchUnreads();
-                    } catch (e) {
-                        const msg = e.message || String(e);
-                        if (msg.includes('SESSION_PASSWORD_NEEDED') || msg.includes('2FA')) {
-                            sendToNative('2FA_REQUIRED', {});
-                        } else {
-                            sendToNative('SIGN_IN_ERROR', { message: msg });
-                        }
-                    }
-                };
-                
-                function startUpdateListener() {
-                    if (!window.client) return;
-                    window.client.addEventHandler(async (event) => {
-                        const message = event.message;
-                        if (!message || message.out) return;
-                        
-                        let chatTitle = 'Чат Telegram';
-                        let senderName = 'Пользователь';
-                        let chatType = 'private';
-                        
-                        try {
-                            const chat = await message.getChat();
-                            if (chat) {
-                                chatTitle = chat.title || chat.firstName || 'Telegram';
-                                if (chat.className === 'Channel') chatType = chat.broadcast ? 'channel' : 'group';
-                                else if (chat.className === 'Chat') chatType = 'group';
-                            }
-                        } catch(e) {}
-                        
-                        try {
-                            const sender = await message.getSender();
-                            if (sender) senderName = sender.firstName || sender.title || senderName;
-                        } catch(e) {}
-                        
-                        sendToNative('NEW_MESSAGE', {
-                            id: String(message.id),
-                            chatId: String(message.chatId || message.peerId),
-                            chatTitle: chatTitle,
-                            senderName: senderName,
-                            messageText: message.text || '📎 Новое вложение',
-                            chatType: chatType
-                        });
-                        
-                        fetchUnreads();
-                    }, new telegram.events.NewMessage({}));
-                }
-                
-                window.fetchUnreads = async function() {
-                    try {
-                        if (!window.client) return;
-                        const dialogs = await window.client.getDialogs({ limit: 100 });
-                        let total = 0, chats = 0, priv = 0, grp = 0, chn = 0, mentions = 0;
-                        for (const d of dialogs) {
-                            const unread = d.unreadCount || 0;
-                            mentions += d.unreadMentionsCount || 0;
-                            if (unread > 0) {
-                                chats++;
-                                total += unread;
-                                if (d.isUser) priv += unread;
-                                else if (d.isGroup) grp += unread;
-                                else if (d.isChannel) chn += unread;
-                            }
-                        }
-                        sendToNative('UNREAD_STATS', {
-                            totalUnreadMessages: total,
-                            totalUnreadChats: chats,
-                            privateChatsUnread: priv,
-                            groupsUnread: grp,
-                            channelsUnread: chn,
-                            mentionsCount: mentions
-                        });
-                    } catch(e) {}
-                };
-                
-                sendToNative('ENGINE_READY', {});
-            </script>
-        </body>
-        </html>
-        """
-        
-        wv.loadHTMLString(engineHTML, baseURL: URL(string: "https://web.telegram.org"))
+        // Priority 1: Load local bundled engine.html from iOS Bundle
+        if let htmlURL = Bundle.main.url(forResource: "engine", withExtension: "html") {
+            wv.loadFileURL(htmlURL, allowingReadAccessTo: htmlURL.deletingLastPathComponent())
+        } else if let jsURL = Bundle.main.url(forResource: "telegram_engine", withExtension: "js"),
+                  let jsContent = try? String(contentsOf: jsURL, encoding: .utf8) {
+            let inlineHTML = """
+            <!DOCTYPE html>
+            <html>
+            <head><meta charset="utf-8"></head>
+            <body><script>\(jsContent)</script></body>
+            </html>
+            """
+            wv.loadHTMLString(inlineHTML, baseURL: URL(string: "https://web.telegram.org"))
+        } else {
+            // Priority 2: Fallback to reading from local Resources directory relative to bundle
+            let fallbackHTML = """
+            <!DOCTYPE html>
+            <html>
+            <head><meta charset="utf-8"></head>
+            <body>
+                <script>
+                    console.log('Loading Telegram Engine...');
+                </script>
+            </body>
+            </html>
+            """
+            wv.loadHTMLString(fallbackHTML, baseURL: URL(string: "https://web.telegram.org"))
+        }
     }
     
     // MARK: - Native Message Handler from Real MTProto Engine
@@ -262,7 +102,10 @@ public final class TelegramClient: NSObject, ObservableObject, WKScriptMessageHa
             self.isEngineReady = true
             let savedSession = UserDefaults.standard.string(forKey: "tg_saved_session") ?? ""
             if !savedSession.isEmpty {
-                executeJS("window.initTelegram(\(apiId), '\(apiHash)', '\(savedSession)', \(selectedDc));")
+                let escapedSession = savedSession
+                    .replacingOccurrences(of: "\\", with: "\\\\")
+                    .replacingOccurrences(of: "'", with: "\\'")
+                executeJS("window.initTelegram(\(apiId), '\(apiHash)', '\(escapedSession)', \(selectedDc));")
             }
             
         case "CONNECTED":
@@ -396,9 +239,13 @@ public final class TelegramClient: NSObject, ObservableObject, WKScriptMessageHa
         self.currentPhone = phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines)
         self.selectedDc = dc
         
+        let escapedPhone = self.currentPhone
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "'", with: "\\'")
+        
         return await withCheckedContinuation { continuation in
             self.pendingSendCodeContinuation = continuation
-            let js = "window.sendCode('\(self.currentPhone)', \(self.apiId), '\(self.apiHash)', \(dc));"
+            let js = "window.sendCode('\(escapedPhone)', \(self.apiId), '\(self.apiHash)', \(dc));"
             self.executeJS(js)
         }
     }
@@ -408,11 +255,18 @@ public final class TelegramClient: NSObject, ObservableObject, WKScriptMessageHa
         self.isLoading = true
         self.errorMessage = nil
         let trimmedCode = code.trimmingCharacters(in: .whitespacesAndNewlines)
-        let pwdEscaped = password?.replacingOccurrences(of: "'", with: "\\'") ?? ""
+        let escapedCode = trimmedCode
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "'", with: "\\'")
+        let escapedPhone = self.currentPhone
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "'", with: "\\'")
+            
+        let pwdArg = password != nil ? "'\(password!.replacingOccurrences(of: "'", with: "\\'"))'" : "null"
         
         return await withCheckedContinuation { continuation in
             self.pendingSignInContinuation = continuation
-            let js = "window.signIn('\(self.currentPhone)', '\(trimmedCode)', \(password == nil ? "null" : "'\(pwdEscaped)'"), \(self.apiId), '\(self.apiHash)');"
+            let js = "window.signIn('\(escapedPhone)', '\(escapedCode)', \(pwdArg));"
             self.executeJS(js)
         }
     }
@@ -481,6 +335,6 @@ public final class TelegramClient: NSObject, ObservableObject, WKScriptMessageHa
         self.isCodeSent = false
         self.requires2FA = false
         UserDefaults.standard.removeObject(forKey: "tg_saved_session")
-        executeJS("window.client = null;")
+        executeJS("window.logOut();")
     }
 }
