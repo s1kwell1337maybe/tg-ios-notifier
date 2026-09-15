@@ -40,6 +40,16 @@ export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'er
 const DEFAULT_API_ID = 2496; // Official Telegram Web App ID
 const DEFAULT_API_HASH = '8da85b0d5b16521323f46f365d9575'; // Official Web Client Hash
 
+const CLIENT_PARAMS = {
+  connectionRetries: 5,
+  useWSS: true,
+  deviceModel: 'Apple iPad / iPhone',
+  systemVersion: 'iOS 18.0',
+  appVersion: '1.0.0',
+  langCode: 'ru',
+  systemLangCode: 'ru',
+};
+
 class TelegramService {
   private client: TelegramClient | null = null;
   private sessionString: string = '';
@@ -159,10 +169,7 @@ class TelegramService {
       const { apiId, apiHash } = this.getApiCredentials();
       const stringSession = new StringSession(this.sessionString);
 
-      this.client = new TelegramClient(stringSession, apiId, apiHash, {
-        connectionRetries: 5,
-        useWSS: true,
-      });
+      this.client = new TelegramClient(stringSession, apiId, apiHash, CLIENT_PARAMS);
 
       await this.client.connect();
 
@@ -210,10 +217,7 @@ class TelegramService {
     const { apiId, apiHash } = this.getApiCredentials();
     const stringSession = new StringSession('');
 
-    this.client = new TelegramClient(stringSession, apiId, apiHash, {
-      connectionRetries: 5,
-      useWSS: true,
-    });
+    this.client = new TelegramClient(stringSession, apiId, apiHash, CLIENT_PARAMS);
 
     await this.client.connect();
 

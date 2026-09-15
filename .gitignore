@@ -8,6 +8,8 @@ dist/
 ios/App/Pods/
 ios/App/build/
 ios/App/Podfile.lock
+*.ipa
+*.zip
 
 # Logs
 npm-debug.log*
