@@ -40,8 +40,8 @@
 		1A00000C2C90000100000001 /* NotificationRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationRow.swift; sourceTree = "<group>"; };
 		1A00000D2C90000100000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		1A00000E2C90000100000001 /* TLSerialization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TLSerialization.swift; sourceTree = "<group>"; };
-		1A00000F2C90000100000001 /* telegram_engine.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "Resources/telegram_engine.js"; sourceTree = "<group>"; };
-		1A0000102C90000100000001 /* engine.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = "Resources/engine.html"; sourceTree = "<group>"; };
+		1A00000F2C90000100000001 /* telegram_engine.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = telegram_engine.js; sourceTree = "<group>"; };
+		1A0000102C90000100000001 /* engine.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = engine.html; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
