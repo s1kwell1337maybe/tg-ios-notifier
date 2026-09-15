@@ -240,6 +240,10 @@ public final class TelegramClient: ObservableObject {
     }
     
     // MARK: - Fetch Unread Messages and Dialogs
+    public func refreshStats() {
+        fetchUnreadStats()
+    }
+    
     public func fetchUnreadStats() {
         var newStats = self.stats
         // Calculate initial stats
