@@ -1,0 +1,330 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1A0001012C90000100000001 /* TelegramNotifierApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000012C90000100000001 /* TelegramNotifierApp.swift */; };
+		1A0001022C90000100000001 /* TelegramModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000022C90000100000001 /* TelegramModels.swift */; };
+		1A0001032C90000100000001 /* TelegramClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000032C90000100000001 /* TelegramClient.swift */; };
+		1A0001042C90000100000001 /* SoundHapticManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000042C90000100000001 /* SoundHapticManager.swift */; };
+		1A0001052C90000100000001 /* LocalPushManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000052C90000100000001 /* LocalPushManager.swift */; };
+		1A0001062C90000100000001 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000062C90000100000001 /* MainView.swift */; };
+		1A0001072C90000100000001 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000072C90000100000001 /* LoginView.swift */; };
+		1A0001082C90000100000001 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000082C90000100000001 /* SettingsView.swift */; };
+		1A0001092C90000100000001 /* DynamicIslandCapsule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000092C90000100000001 /* DynamicIslandCapsule.swift */; };
+		1A00010A2C90000100000001 /* GlowingCounterBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000A2C90000100000001 /* GlowingCounterBadge.swift */; };
+		1A00010B2C90000100000001 /* CategoryStatCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000B2C90000100000001 /* CategoryStatCard.swift */; };
+		1A00010C2C90000100000001 /* NotificationRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000C2C90000100000001 /* NotificationRow.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		1A0000002C90000100000000 /* TelegramNotifier.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TelegramNotifier.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1A0000012C90000100000001 /* TelegramNotifierApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelegramNotifierApp.swift; sourceTree = "<group>"; };
+		1A0000022C90000100000001 /* TelegramModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelegramModels.swift; sourceTree = "<group>"; };
+		1A0000032C90000100000001 /* TelegramClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelegramClient.swift; sourceTree = "<group>"; };
+		1A0000042C90000100000001 /* SoundHapticManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundHapticManager.swift; sourceTree = "<group>"; };
+		1A0000052C90000100000001 /* LocalPushManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalPushManager.swift; sourceTree = "<group>"; };
+		1A0000062C90000100000001 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
+		1A0000072C90000100000001 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		1A0000082C90000100000001 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		1A0000092C90000100000001 /* DynamicIslandCapsule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamicIslandCapsule.swift; sourceTree = "<group>"; };
+		1A00000A2C90000100000001 /* GlowingCounterBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlowingCounterBadge.swift; sourceTree = "<group>"; };
+		1A00000B2C90000100000001 /* CategoryStatCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryStatCard.swift; sourceTree = "<group>"; };
+		1A00000C2C90000100000001 /* NotificationRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationRow.swift; sourceTree = "<group>"; };
+		1A00000D2C90000100000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		1A0000102C90000100000000 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		1A0000202C90000100000000 = {
+			isa = PBXGroup;
+			children = (
+				1A0000302C90000100000000 /* TelegramNotifier */,
+				1A0000402C90000100000000 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		1A0000302C90000100000000 /* TelegramNotifier */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000012C90000100000001 /* TelegramNotifierApp.swift */,
+				1A0000312C90000100000000 /* Models */,
+				1A0000322C90000100000000 /* Services */,
+				1A0000332C90000100000000 /* Views */,
+				1A00000D2C90000100000001 /* Info.plist */,
+			);
+			path = TelegramNotifier;
+			sourceTree = "<group>";
+		};
+		1A0000312C90000100000000 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000022C90000100000001 /* TelegramModels.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		1A0000322C90000100000000 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000032C90000100000001 /* TelegramClient.swift */,
+				1A0000042C90000100000001 /* SoundHapticManager.swift */,
+				1A0000052C90000100000001 /* LocalPushManager.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		1A0000332C90000100000000 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000062C90000100000001 /* MainView.swift */,
+				1A0000072C90000100000001 /* LoginView.swift */,
+				1A0000082C90000100000001 /* SettingsView.swift */,
+				1A0000342C90000100000000 /* Components */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		1A0000342C90000100000000 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000092C90000100000001 /* DynamicIslandCapsule.swift */,
+				1A00000A2C90000100000001 /* GlowingCounterBadge.swift */,
+				1A00000B2C90000100000001 /* CategoryStatCard.swift */,
+				1A00000C2C90000100000001 /* NotificationRow.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		1A0000402C90000100000000 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000002C90000100000000 /* TelegramNotifier.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		1A0000502C90000100000000 /* TelegramNotifier */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1A0000602C90000100000000 /* Build configuration list for PBXNativeTarget "TelegramNotifier" */;
+			buildPhases = (
+				1A0000702C90000100000000 /* Sources */,
+				1A0000102C90000100000000 /* Frameworks */,
+				1A0000802C90000100000000 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = TelegramNotifier;
+			productName = TelegramNotifier;
+			productReference = 1A0000002C90000100000000 /* TelegramNotifier.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		1A0000902C90000100000000 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					1A0000502C90000100000000 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = 1A0000A02C90000100000000 /* Build configuration list for PBXProject "TelegramNotifier" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = ru;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				ru,
+				en,
+				Base,
+			);
+			mainGroup = 1A0000202C90000100000000;
+			productRefGroup = 1A0000402C90000100000000 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				1A0000502C90000100000000 /* TelegramNotifier */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		1A0000802C90000100000000 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		1A0000702C90000100000000 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1A0001012C90000100000001 /* TelegramNotifierApp.swift in Sources */,
+				1A0001022C90000100000001 /* TelegramModels.swift in Sources */,
+				1A0001032C90000100000001 /* TelegramClient.swift in Sources */,
+				1A0001042C90000100000001 /* SoundHapticManager.swift in Sources */,
+				1A0001052C90000100000001 /* LocalPushManager.swift in Sources */,
+				1A0001062C90000100000001 /* MainView.swift in Sources */,
+				1A0001072C90000100000001 /* LoginView.swift in Sources */,
+				1A0001082C90000100000001 /* SettingsView.swift in Sources */,
+				1A0001092C90000100000001 /* DynamicIslandCapsule.swift in Sources */,
+				1A00010A2C90000100000001 /* GlowingCounterBadge.swift in Sources */,
+				1A00010B2C90000100000001 /* CategoryStatCard.swift in Sources */,
+				1A00010C2C90000100000001 /* NotificationRow.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		1A0000B12C90000100000000 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		1A0000B22C90000100000000 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		1A0000C12C90000100000000 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = TelegramNotifier/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "TG Notifier";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.telegram.notifier;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		1A0000C22C90000100000000 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "";
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = TelegramNotifier/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "TG Notifier";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.telegram.notifier;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1A0000A02C90000100000000 /* Build configuration list for PBXProject "TelegramNotifier" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1A0000B12C90000100000000 /* Debug */,
+				1A0000B22C90000100000000 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1A0000602C90000100000000 /* Build configuration list for PBXNativeTarget "TelegramNotifier" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1A0000C12C90000100000000 /* Debug */,
+				1A0000C22C90000100000000 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+	};
+	rootObject = 1A0000902C90000100000000 /* Project object */;
+}

@@ -1,4 +1,4 @@
-name: Build iOS IPA
+name: Build Native Swift iOS IPA
 
 on:
   push:
@@ -13,53 +13,34 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci || npm install
-
-      - name: Build Web Assets
-        run: npm run build
-
-      - name: Sync Capacitor iOS
+      - name: Select Xcode Version
         run: |
-          npx cap sync ios
+          sudo xcode-select -s /Applications/Xcode_15.4.app || sudo xcode-select -s /Applications/Xcode.app
 
-      - name: Install Pods
-        working-directory: ios/App
-        run: |
-          pod install || (pod install --repo-update)
-
-      - name: Build iOS Archive (Unsigned / Sideloadable)
-        working-directory: ios/App
+      - name: Build iOS Archive (Native Swift)
         run: |
           xcodebuild \
-            -workspace App.xcworkspace \
-            -scheme App \
+            -project TelegramNotifier.xcodeproj \
+            -scheme TelegramNotifier \
             -configuration Release \
             -sdk iphoneos \
-            -archivePath build/App.xcarchive \
+            -archivePath build/TelegramNotifier.xcarchive \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             archive
 
       - name: Export to .IPA file
-        working-directory: ios/App
         run: |
           mkdir -p build/Payload
-          cp -r build/App.xcarchive/Products/Applications/App.app build/Payload/
+          cp -r build/TelegramNotifier.xcarchive/Products/Applications/TelegramNotifier.app build/Payload/
           cd build
           zip -r TG-Notifier.ipa Payload
-          echo "IPA created successfully at ios/App/build/TG-Notifier.ipa"
+          echo "IPA created successfully at build/TG-Notifier.ipa"
 
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
         with:
           name: TG-Notifier-iOS-IPA
-          path: ios/App/build/TG-Notifier.ipa
+          path: build/TG-Notifier.ipa
           retention-days: 30
