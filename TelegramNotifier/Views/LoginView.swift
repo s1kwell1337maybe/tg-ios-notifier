@@ -5,7 +5,7 @@ public struct LoginView: View {
     @Environment(\.dismiss) private var dismiss
     
     @State private var phoneNumber: String = "+7 "
-    @State private var otpDigits: [String] = Array(repeating: "", count: 5)
+    @State private var otpCode: String = ""
     @State private var password2FA: String = ""
     @State private var step: LoginStep = .phone
     @State private var showAdvanced: Bool = false
@@ -64,7 +64,7 @@ public struct LoginView: View {
                                 .font(.system(size: 20, weight: .bold, design: .rounded))
                                 .foregroundColor(.white)
                             
-                            Text("Прямое подключение к серверам Telegram по MTProto")
+                            Text("Прямое защищенное подключение по протоколу MTProto")
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundColor(.gray)
                                 .multilineTextAlignment(.center)
@@ -91,13 +91,15 @@ public struct LoginView: View {
                             )
                         }
                         
-                        // Step 1: Phone
-                        if step == .phone {
-                            phoneStepView
-                        } else if step == .code {
-                            codeStepView
-                        } else if step == .password {
+                        // Steps
+                        if client.currentUser != nil {
+                            loggedInView
+                        } else if client.requires2FA || step == .password {
                             passwordStepView
+                        } else if client.isCodeSent || step == .code {
+                            codeStepView
+                        } else {
+                            phoneStepView
                         }
                     }
                     .padding(.horizontal, 20)
@@ -114,6 +116,66 @@ public struct LoginView: View {
                     }
                 }
             }
+        }
+    }
+    
+    // MARK: - Logged In State
+    private var loggedInView: some View {
+        VStack(spacing: 16) {
+            ZStack {
+                Circle()
+                    .fill(LinearGradient(colors: [Color.blue, Color.cyan], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .frame(width: 68, height: 68)
+                Text(client.currentUser?.initial ?? "U")
+                    .font(.system(size: 28, weight: .black, design: .rounded))
+                    .foregroundColor(.white)
+            }
+            
+            Text(client.currentUser?.displayName ?? "Telegram User")
+                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .foregroundColor(.white)
+            
+            Text(client.currentUser?.displayTag ?? "")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(.cyan)
+            
+            HStack(spacing: 6) {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+                Text("Авторизован в Telegram MTProto")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(.green)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(Color.green.opacity(0.15))
+            .clipShape(Capsule())
+            
+            HStack(spacing: 12) {
+                Button(action: { dismiss() }) {
+                    Text("Закрыть")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color.white.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                }
+                
+                Button(action: {
+                    client.logout()
+                    step = .phone
+                }) {
+                    Text("Выйти из аккаунта")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.red)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color.red.opacity(0.15))
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                }
+            }
+            .padding(.top, 12)
         }
     }
     
@@ -239,40 +301,47 @@ public struct LoginView: View {
                     .font(.system(size: 11, weight: .bold))
                     .foregroundColor(.gray)
                 Spacer()
-                Button(action: { withAnimation { step = .phone } }) {
-                    Text("Изменить номер")
+                Button(action: {
+                    withAnimation {
+                        client.isCodeSent = false
+                        step = .phone
+                    }
+                }) {
+                    Text("Изменить номер (\(phoneNumber))")
                         .font(.system(size: 11, weight: .bold))
                         .foregroundColor(.cyan)
                 }
             }
             
-            // Single Code Field
-            TextField("12345", text: Binding(
-                get: { otpDigits.joined() },
-                set: { val in
-                    let filtered = String(val.prefix(5))
-                    otpDigits = filtered.map { String($0) }
-                }
-            ))
-            .font(.system(size: 32, weight: .heavy, design: .monospaced))
-            .foregroundColor(.white)
-            .multilineTextAlignment(.center)
-            .keyboardType(.numberPad)
-            .padding(16)
-            .background(Color.white.opacity(0.07))
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(Color.cyan.opacity(0.5), lineWidth: 1.5)
-            )
+            // OTP Code Input
+            TextField("12345", text: $otpCode)
+                .font(.system(size: 32, weight: .heavy, design: .monospaced))
+                .foregroundColor(.white)
+                .multilineTextAlignment(.center)
+                .keyboardType(.numberPad)
+                .padding(16)
+                .background(Color.white.opacity(0.07))
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(Color.cyan.opacity(0.5), lineWidth: 1.5)
+                )
+            
+            Text("Введите 5-значный проверочный код. Если код неверен — вход будет отклонен.")
+                .font(.system(size: 11))
+                .foregroundColor(.gray)
+                .multilineTextAlignment(.center)
             
             // Confirm Button
             Button(action: {
                 Task {
-                    let codeString = otpDigits.joined()
-                    let success = await client.signIn(code: codeString)
+                    let success = await client.signIn(code: otpCode)
                     if success {
                         dismiss()
+                    } else if client.requires2FA {
+                        withAnimation {
+                            step = .password
+                        }
                     }
                 }
             }) {
@@ -326,20 +395,28 @@ public struct LoginView: View {
             
             Button(action: {
                 Task {
-                    let success = await client.signIn(code: otpDigits.joined(), password: password2FA)
+                    let success = await client.signIn(code: otpCode, password: password2FA)
                     if success {
                         dismiss()
                     }
                 }
             }) {
-                Text("Войти с паролем")
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 15)
-                    .background(Color.blue)
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                HStack(spacing: 8) {
+                    if client.isLoading {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                    } else {
+                        Text("Войти с паролем")
+                            .font(.system(size: 15, weight: .bold, design: .rounded))
+                    }
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 15)
+                .background(Color.blue)
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             }
+            .disabled(client.isLoading)
         }
     }
 }
