@@ -25,10 +25,6 @@ jobs:
       - name: Build Web Assets
         run: npm run build
 
-      - name: Setup CocoaPods
-        run: |
-          sudo gem install cocoapods
-
       - name: Sync Capacitor iOS
         run: |
           npx cap sync ios
@@ -36,7 +32,7 @@ jobs:
       - name: Install Pods
         working-directory: ios/App
         run: |
-          pod install
+          pod install || (pod install --repo-update)
 
       - name: Build iOS Archive (Unsigned / Sideloadable)
         working-directory: ios/App
