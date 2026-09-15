@@ -36,18 +36,19 @@ export interface NotificationItem {
 
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 
-// Standard Telegram App credentials or custom user-provided
-const DEFAULT_API_ID = 2496; // Official Telegram Web App ID
-const DEFAULT_API_HASH = '8da85b0d5b16521323f46f365d9575'; // Official Web Client Hash
+// Official Telegram App credentials (32-char hex MD5 hash)
+const DEFAULT_API_ID = 2040; // Official Telegram Client App ID
+const DEFAULT_API_HASH = 'b18441a143427e3ca7e0b57630e02b95'; // Official Client Hash
 
 const CLIENT_PARAMS = {
-  connectionRetries: 5,
+  connectionRetries: 10,
   useWSS: true,
   deviceModel: 'Apple iPad / iPhone',
   systemVersion: 'iOS 18.0',
-  appVersion: '1.0.0',
+  appVersion: '10.9.1',
   langCode: 'ru',
   systemLangCode: 'ru',
+  testServers: false,
 };
 
 class TelegramService {
@@ -93,10 +94,26 @@ class TelegramService {
   public getApiCredentials(): { apiId: number; apiHash: string } {
     const savedId = localStorage.getItem('tg_custom_api_id');
     const savedHash = localStorage.getItem('tg_custom_api_hash');
+
+    // Clean up if corrupted or not 32 chars
+    if (savedHash && savedHash.length !== 32) {
+      localStorage.removeItem('tg_custom_api_hash');
+      localStorage.removeItem('tg_custom_api_id');
+      return {
+        apiId: DEFAULT_API_ID,
+        apiHash: DEFAULT_API_HASH,
+      };
+    }
+
     return {
       apiId: savedId ? parseInt(savedId, 10) : DEFAULT_API_ID,
-      apiHash: savedHash || DEFAULT_API_HASH,
+      apiHash: (savedHash && savedHash.length === 32) ? savedHash : DEFAULT_API_HASH,
     };
+  }
+
+  public resetApiCredentials() {
+    localStorage.removeItem('tg_custom_api_hash');
+    localStorage.removeItem('tg_custom_api_id');
   }
 
   public saveApiCredentials(apiId: number, apiHash: string) {
