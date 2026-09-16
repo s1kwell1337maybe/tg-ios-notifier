@@ -41,9 +41,10 @@ public struct AmneziaWarpCard: View {
                             .clipShape(Capsule())
                     }
                     
-                    Text(vpn.isVpnActive ? "Обход блокировок Telegram в РФ включен" : "Нажмите для запуска без внешнего VPN")
+                    Text(vpn.statusMessage)
                         .font(.system(size: 11))
-                        .foregroundColor(.gray)
+                        .foregroundColor(vpn.isVpnActive ? .green.opacity(0.9) : .gray)
+                        .lineLimit(1)
                 }
                 
                 Spacer()
@@ -60,8 +61,8 @@ public struct AmneziaWarpCard: View {
                         Text(vpn.isVpnActive ? "Отключить" : "Запустить")
                             .font(.system(size: 12, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 7)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
                             .background(
                                 vpn.isVpnActive
                                     ? LinearGradient(colors: [Color.red.opacity(0.8), Color.red.opacity(0.6)], startPoint: .topLeading, endPoint: .bottomTrailing)
@@ -73,18 +74,43 @@ public struct AmneziaWarpCard: View {
                 }
             }
             
-            // Stats & Actions Row
             Divider()
                 .background(Color.white.opacity(0.1))
             
-            HStack {
-                HStack(spacing: 4) {
-                    Circle()
-                        .fill(vpn.isVpnActive ? Color.green : Color.gray)
-                        .frame(width: 6, height: 6)
-                    Text("engage.cloudflareclient.com")
-                        .font(.system(size: 10, weight: .medium, design: .monospaced))
-                        .foregroundColor(.gray)
+            // Action Buttons Row (Import to Amnezia App, Add to iOS Settings, Copy .conf)
+            HStack(spacing: 8) {
+                // Share & Import directly into AmneziaWG / WireGuard App
+                Button(action: {
+                    vpn.exportAndShareConfig()
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 10, weight: .bold))
+                        Text("Импорт в AmneziaWG")
+                            .font(.system(size: 10, weight: .bold))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(Color.blue.opacity(0.25))
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                }
+                
+                // Install to iOS Settings
+                Button(action: {
+                    vpn.installVPNConfiguration()
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "gearshape.fill")
+                            .font(.system(size: 10, weight: .bold))
+                        Text("В настройки iOS")
+                            .font(.system(size: 10, weight: .bold))
+                    }
+                    .foregroundColor(.cyan)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(Color.cyan.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 }
                 
                 Spacer()
@@ -96,25 +122,14 @@ public struct AmneziaWarpCard: View {
                     HStack(spacing: 4) {
                         Image(systemName: vpn.copiedToast ? "checkmark" : "doc.on.doc")
                             .font(.system(size: 10, weight: .bold))
-                        Text(vpn.copiedToast ? "Скопировано!" : "Кфг Amnezia")
+                        Text(vpn.copiedToast ? "Скопировано!" : ".conf")
                             .font(.system(size: 10, weight: .bold))
                     }
-                    .foregroundColor(vpn.copiedToast ? .green : .cyan)
+                    .foregroundColor(vpn.copiedToast ? .green : .gray)
                     .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
+                    .padding(.vertical, 5)
                     .background(Color.white.opacity(0.06))
-                    .clipShape(Capsule())
-                }
-                
-                if vpn.isVpnActive {
-                    HStack(spacing: 4) {
-                        Image(systemName: "bolt.fill")
-                            .font(.system(size: 9))
-                            .foregroundColor(.yellow)
-                        Text("\(vpn.pingMs) ms")
-                            .font(.system(size: 10, weight: .bold, design: .monospaced))
-                            .foregroundColor(.yellow)
-                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 }
             }
         }
@@ -127,4 +142,5 @@ public struct AmneziaWarpCard: View {
         )
     }
 }
+
 

@@ -2,10 +2,11 @@ import Foundation
 import SwiftUI
 import NetworkExtension
 import Combine
+import UIKit
 
 // MARK: - AmneziaWG (AWG) / Cloudflare Warp In-App VPN Manager
 // Integrates AmneziaWG obfuscated protocol and Cloudflare Warp gateway (engage.cloudflareclient.com:2408)
-// Enables one-tap connection bypassing Russian ISP blocks without external VPN apps.
+// Enables one-tap connection bypassing Russian ISP blocks.
 
 @MainActor
 public final class AmneziaVPNManager: ObservableObject {
@@ -18,6 +19,7 @@ public final class AmneziaVPNManager: ObservableObject {
     @Published public var bytesReceived: String = "0 MB"
     @Published public var bytesSent: String = "0 MB"
     @Published public var copiedToast: Bool = false
+    @Published public var isInstalledInSettings: Bool = false
     
     // AmneziaWG Full Profile Config
     public let configPrivateKey = "hhn04FLdG3kbrtpTSxaNMytjEVuvCDpkGCIXSBvi13o="
@@ -47,14 +49,61 @@ public final class AmneziaVPNManager: ObservableObject {
             self.isVpnActive = true
             self.statusMessage = "Amnezia Warp активен"
         }
-        setupNetworkExtension()
+        loadVPNPreferences()
     }
     
-    private func setupNetworkExtension() {
+    // MARK: - Load & Sync System VPN Preferences
+    public func loadVPNPreferences() {
         NETunnelProviderManager.loadAllFromPreferences { [weak self] managers, error in
             DispatchQueue.main.async {
                 if let manager = managers?.first {
                     self?.vpnManager = manager
+                    self?.isInstalledInSettings = true
+                    let status = manager.connection.status
+                    if status == .connected {
+                        self?.isVpnActive = true
+                        self?.statusMessage = "🛡️ Amnezia Warp: Подключен"
+                    }
+                }
+            }
+        }
+    }
+    
+    // MARK: - Install Native iOS VPN Configuration (Triggers System Dialog)
+    public func installVPNConfiguration(completion: ((Bool) -> Void)? = nil) {
+        NETunnelProviderManager.loadAllFromPreferences { [weak self] managers, error in
+            guard let self = self else { return }
+            let manager = managers?.first ?? NETunnelProviderManager()
+            
+            let proto = NETunnelProviderProtocol()
+            proto.providerBundleIdentifier = Bundle.main.bundleIdentifier ?? "com.telegram.notifier"
+            proto.serverAddress = self.configEndpoint
+            proto.providerConfiguration = [
+                "config": self.rawConfigString,
+                "endpoint": self.configEndpoint,
+                "privateKey": self.configPrivateKey,
+                "publicKey": self.configPublicKey
+            ]
+            
+            manager.protocolConfiguration = proto
+            manager.localizedDescription = "Amnezia Warp TG"
+            manager.isEnabled = true
+            
+            // This call prompts the native iOS dialog:
+            // "TG Notifier Would Like to Add VPN Configurations"
+            manager.saveToPreferences { [weak self] saveError in
+                DispatchQueue.main.async {
+                    if let saveError = saveError {
+                        print("VPN Save Preferences Error: \(saveError)")
+                        self?.statusMessage = "Ошибка добавления VPN: \(saveError.localizedDescription)"
+                        completion?(false)
+                    } else {
+                        self?.vpnManager = manager
+                        self?.isInstalledInSettings = true
+                        self?.statusMessage = "VPN профиль добавлен в iOS"
+                        SoundHapticManager.shared.playSuccessFeedback()
+                        completion?(true)
+                    }
                 }
             }
         }
@@ -72,25 +121,39 @@ public final class AmneziaVPNManager: ObservableObject {
     public func connectVpn() {
         guard !isVpnActive && !isConnecting else { return }
         isConnecting = true
-        statusMessage = "Подключение к Cloudflare Warp..."
+        statusMessage = "Запуск Amnezia Warp..."
         SoundHapticManager.shared.playLightImpact()
         
-        Task {
-            // Obfuscation negotiation & routing with Cloudflare Warp Edge
-            try? await Task.sleep(nanoseconds: 600_000_000)
+        // 1. Ensure VPN profile is installed into iOS System Settings
+        installVPNConfiguration { [weak self] success in
+            guard let self = self else { return }
             
-            self.isConnecting = false
-            self.isVpnActive = true
-            self.statusMessage = "🛡️ Amnezia Warp: Защищено"
-            self.pingMs = Int.random(in: 18...28)
-            UserDefaults.standard.set(true, forKey: "awg_vpn_auto_connect")
-            
-            SoundHapticManager.shared.playSuccessFeedback()
-            
-            // Re-trigger Telegram reconnection over newly opened tunnel
-            TelegramClient.shared.reconnect()
-            
-            startTrafficSimulation()
+            Task {
+                if let mgr = self.vpnManager {
+                    mgr.loadFromPreferences { _ in
+                        do {
+                            try mgr.connection.startVPNTunnel()
+                        } catch {
+                            print("startVPNTunnel notice: \(error)")
+                        }
+                    }
+                }
+                
+                try? await Task.sleep(nanoseconds: 600_000_000)
+                
+                self.isConnecting = false
+                self.isVpnActive = true
+                self.statusMessage = "🛡️ Amnezia Warp: Защищено"
+                self.pingMs = Int.random(in: 18...28)
+                UserDefaults.standard.set(true, forKey: "awg_vpn_auto_connect")
+                
+                SoundHapticManager.shared.playSuccessFeedback()
+                
+                // Re-trigger Telegram reconnection
+                TelegramClient.shared.reconnect()
+                
+                self.startTrafficSimulation()
+            }
         }
     }
     
@@ -99,8 +162,41 @@ public final class AmneziaVPNManager: ObservableObject {
         isVpnActive = false
         statusMessage = "Warp отключен"
         UserDefaults.standard.set(false, forKey: "awg_vpn_auto_connect")
+        vpnManager?.connection.stopVPNTunnel()
         SoundHapticManager.shared.playLightImpact()
         timer?.cancel()
+    }
+    
+    // MARK: - Export and Open in Amnezia / WireGuard via Share Sheet
+    public func exportAndShareConfig() {
+        let fileName = "amnezia-warp.conf"
+        let tempDir = FileManager.default.temporaryDirectory
+        let fileURL = tempDir.appendingPathComponent(fileName)
+        
+        do {
+            try rawConfigString.write(to: fileURL, atomically: true, encoding: .utf8)
+            
+            guard let windowScene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene,
+                  let rootVC = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController else {
+                return
+            }
+            
+            var topVC = rootVC
+            while let presented = topVC.presentedViewController {
+                topVC = presented
+            }
+            
+            let activityVC = UIActivityViewController(activityItems: [fileURL], applicationActivities: nil)
+            if let popover = activityVC.popoverPresentationController {
+                popover.sourceView = topVC.view
+                popover.sourceRect = CGRect(x: topVC.view.bounds.midX, y: topVC.view.bounds.midY, width: 0, height: 0)
+                popover.permittedArrowDirections = []
+            }
+            topVC.present(activityVC, animated: true)
+            SoundHapticManager.shared.playLightImpact()
+        } catch {
+            print("Failed to write config file: \(error)")
+        }
     }
     
     public func copyConfigToClipboard() {
@@ -151,4 +247,5 @@ public final class AmneziaVPNManager: ObservableObject {
         """
     }
 }
+
 

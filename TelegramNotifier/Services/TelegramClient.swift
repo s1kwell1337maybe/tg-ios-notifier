@@ -434,7 +434,7 @@ public final class TelegramClient: NSObject, ObservableObject, WKScriptMessageHa
         executeJS("window.initTelegram(\(apiId), '\(apiHash)', '\(escapedSession)', \(selectedDc));")
         
         Task {
-            try? await Task.sleep(nanoseconds: 6_000_000_000)
+            try? await Task.sleep(nanoseconds: 20_000_000_000)
             if self.connectionState == .connecting {
                 self.connectionState = .disconnected
             }
