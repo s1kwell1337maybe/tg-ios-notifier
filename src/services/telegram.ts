@@ -240,34 +240,55 @@ class TelegramService {
 
   // Send login confirmation code to user's Telegram / SMS
   public async sendCode(phone: string, customDcId?: number): Promise<{ phoneCodeHash: string; isCodeSent: boolean }> {
-    this.currentPhone = phone.trim();
+    this.currentPhone = phone.replace(/[^\d+]/g, '').trim();
     const { apiId, apiHash } = this.getApiCredentials();
-    const stringSession = new StringSession('');
 
-    // Default to DC 2 for Russian numbers to eliminate initial redirect delay without VPN
-    const isRussianNumber = this.currentPhone.startsWith('+7') || this.currentPhone.startsWith('7');
-    const targetDc = customDcId || (isRussianNumber ? 2 : 4);
-    const serverHost = targetDc === 2 ? 'venus.web.telegram.org' : 'vesta.web.telegram.org';
-
-    stringSession.setDC(targetDc, serverHost, 443);
-
-    this.client = new TelegramClient(stringSession, apiId, apiHash, CLIENT_PARAMS);
-
-    await this.client.connect();
-
-    const result = await this.client.sendCode(
-      {
-        apiId,
-        apiHash,
-      },
-      this.currentPhone
-    );
-
-    this.phoneCodeHash = result.phoneCodeHash;
-    return {
-      phoneCodeHash: result.phoneCodeHash,
-      isCodeSent: true,
+    let targetDc = customDcId || 4;
+    const DC_SERVERS: Record<number, string> = {
+      1: 'pluto.web.telegram.org',
+      2: 'venus.web.telegram.org',
+      3: 'aurora.web.telegram.org',
+      4: 'vesta.web.telegram.org',
+      5: 'flora.web.telegram.org',
     };
+
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const stringSession = new StringSession('');
+        const serverHost = DC_SERVERS[targetDc] || 'vesta.web.telegram.org';
+        stringSession.setDC(targetDc, serverHost, 443);
+
+        this.client = new TelegramClient(stringSession, apiId, apiHash, CLIENT_PARAMS);
+        await this.client.connect();
+
+        const result = await this.client.sendCode(
+          {
+            apiId,
+            apiHash,
+          },
+          this.currentPhone
+        );
+
+        this.phoneCodeHash = result.phoneCodeHash;
+        return {
+          phoneCodeHash: result.phoneCodeHash,
+          isCodeSent: true,
+        };
+      } catch (err: unknown) {
+        const msg = (err as Error)?.message || String(err);
+        const match = msg.match(/(?:PHONE|NETWORK|USER)_MIGRATE_(\d+)/i);
+        if (match && match[1]) {
+          targetDc = parseInt(match[1], 10);
+          continue;
+        }
+        if (targetDc === 2 && attempt === 0) {
+          targetDc = 4;
+          continue;
+        }
+        throw err;
+      }
+    }
+    throw new Error('Не удалось отправить код подтверждения');
   }
 
   // Complete sign-in with verification code and optional 2FA password

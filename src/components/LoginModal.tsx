@@ -10,6 +10,26 @@ interface LoginModalProps {
   onLogout: () => void;
 }
 
+function formatPhoneNumber(raw: string): string {
+  const digits = raw.replace(/\D/g, '');
+  if (!digits) return '+7 ';
+  let d = digits;
+  if (d.startsWith('8') && d.length > 1) {
+    d = '7' + d.slice(1);
+  } else if (!d.startsWith('7') && !d.startsWith('1') && !d.startsWith('3')) {
+    d = '7' + d;
+  }
+  if (d.startsWith('7')) {
+    const num = d.slice(1);
+    let res = '+7';
+    if (num.length > 0) res += ' ' + num.slice(0, 3);
+    if (num.length > 3) res += ' ' + num.slice(3, 6);
+    if (num.length > 6) res += ' ' + num.slice(6, 10);
+    return res;
+  }
+  return '+' + d;
+}
+
 export const LoginModal: React.FC<LoginModalProps> = ({
   isOpen,
   onClose,
@@ -18,12 +38,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   onLogout,
 }) => {
   const [step, setStep] = useState<'phone' | 'code' | 'password'>('phone');
-  const [phone, setPhone] = useState('+7');
+  const [phone, setPhone] = useState('+7 925 043 1339');
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [selectedDc, setSelectedDc] = useState<number>(2); // Default to DC 2 for Russia/CIS (instant, no VPN needed)
+  const [selectedDc, setSelectedDc] = useState<number>(4); // Default to DC 4 (World / Main) with auto-migration
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [customApiId, setCustomApiId] = useState(String(telegramService.getApiCredentials().apiId));
   const [customApiHash, setCustomApiHash] = useState(telegramService.getApiCredentials().apiHash);
@@ -245,8 +265,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     <input
                       type="tel"
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="+7 925 043 13 39"
+                      onChange={(e) => setPhone(formatPhoneNumber(e.target.value))}
+                      placeholder="+7 925 043 1339"
                       required
                       className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/5 border border-white/15 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-sky-400 transition-colors"
                     />

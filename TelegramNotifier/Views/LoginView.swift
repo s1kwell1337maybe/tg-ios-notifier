@@ -1,15 +1,82 @@
 import SwiftUI
 
+// MARK: - Phone Number Formatter (+7 925 043 1339)
+public struct PhoneFormatter {
+    public static func format(_ raw: String) -> String {
+        // Strip everything except digits and +
+        let digits = raw.filter { $0.isNumber }
+        guard !digits.isEmpty else { return "+7 " }
+        
+        var d = digits
+        if d.hasPrefix("8") && d.count > 1 {
+            d = "7" + d.dropFirst()
+        } else if !d.hasPrefix("7") && !d.hasPrefix("1") && !d.hasPrefix("3") && !d.hasPrefix("4") && !d.hasPrefix("9") {
+            d = "7" + d
+        }
+        
+        if d.hasPrefix("7") {
+            let number = String(d.dropFirst()) // digits after 7
+            var res = "+7"
+            if !number.isEmpty {
+                let p1 = String(number.prefix(3))
+                res += " " + p1
+            }
+            if number.count > 3 {
+                let p2 = String(number.dropFirst(3).prefix(3))
+                res += " " + p2
+            }
+            if number.count > 6 {
+                let p3 = String(number.dropFirst(6).prefix(4))
+                res += " " + p3
+            }
+            return res
+        } else {
+            // General international format: +XXX XXX XXXX
+            var res = "+"
+            for (i, char) in d.enumerated() {
+                if (i == 1 && d.count > 1) || (i == 4 && d.count > 4) || (i == 7 && d.count > 7) || (i == 10 && d.count > 10) {
+                    res += " "
+                }
+                res.append(char)
+            }
+            return res
+        }
+    }
+    
+    public static func cleanDigits(_ formatted: String) -> String {
+        let digits = formatted.filter { $0.isNumber }
+        if digits.hasPrefix("8") && digits.count == 11 {
+            return "+7" + digits.dropFirst()
+        }
+        if !digits.hasPrefix("+") {
+            return "+" + digits
+        }
+        return digits
+    }
+    
+    public static func flagForNumber(_ formatted: String) -> String {
+        let digits = formatted.filter { $0.isNumber }
+        if digits.hasPrefix("7") { return "🇷🇺" }
+        if digits.hasPrefix("1") { return "🇺🇸" }
+        if digits.hasPrefix("380") { return "🇺🇦" }
+        if digits.hasPrefix("375") { return "🇧🇾" }
+        if digits.hasPrefix("998") { return "🇺🇿" }
+        if digits.hasPrefix("77") { return "🇰🇿" }
+        if digits.hasPrefix("44") { return "🇬🇧" }
+        if digits.hasPrefix("49") { return "🇩🇪" }
+        return "🌍"
+    }
+}
+
 public struct LoginView: View {
     @ObservedObject var client: TelegramClient
     @Environment(\.dismiss) private var dismiss
     
-    @State private var phoneNumber: String = "+7 "
+    @State private var phoneNumber: String = "+7 925 043 1339"
     @State private var otpCode: String = ""
     @State private var password2FA: String = ""
     @State private var step: LoginStep = .phone
-    @State private var showAdvanced: Bool = false
-    @State private var selectedDc: Int = 2
+    @State private var selectedDc: Int = 4
     
     public enum LoginStep {
         case phone
@@ -24,11 +91,11 @@ public struct LoginView: View {
     public var body: some View {
         NavigationView {
             ZStack {
-                // Background Gradient
+                // Background Deep Space Gradient
                 LinearGradient(
                     colors: [
-                        Color(red: 0.04, green: 0.07, blue: 0.12),
-                        Color(red: 0.08, green: 0.12, blue: 0.18)
+                        Color(red: 0.03, green: 0.06, blue: 0.11),
+                        Color(red: 0.07, green: 0.11, blue: 0.17)
                     ],
                     startPoint: .top,
                     endPoint: .bottom
@@ -37,7 +104,7 @@ public struct LoginView: View {
                 
                 ScrollView {
                     VStack(spacing: 24) {
-                        // Icon & Title
+                        // Header Badge & Title
                         VStack(spacing: 8) {
                             ZStack {
                                 RoundedRectangle(cornerRadius: 22, style: .continuous)
@@ -51,7 +118,7 @@ public struct LoginView: View {
                                     .frame(width: 64, height: 64)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 22, style: .continuous)
-                                            .stroke(Color.blue.opacity(0.4), lineWidth: 1.5)
+                                            .stroke(Color.cyan.opacity(0.4), lineWidth: 1.5)
                                     )
                                 
                                 Image(systemName: "shield.checkered")
@@ -64,7 +131,7 @@ public struct LoginView: View {
                                 .font(.system(size: 20, weight: .bold, design: .rounded))
                                 .foregroundColor(.white)
                             
-                            Text("Прямое защищенное подключение по протоколу MTProto")
+                            Text("Официальное подключение MTProto к серверам Telegram")
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundColor(.gray)
                                 .multilineTextAlignment(.center)
@@ -91,7 +158,7 @@ public struct LoginView: View {
                             )
                         }
                         
-                        // Steps
+                        // Content by Step
                         if client.currentUser != nil {
                             loggedInView
                         } else if client.requires2FA || step == .password {
@@ -142,7 +209,7 @@ public struct LoginView: View {
             HStack(spacing: 6) {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundColor(.green)
-                Text("Авторизован в Telegram MTProto")
+                Text("Подключен к Telegram MTProto (DC \(client.selectedDc))")
                     .font(.system(size: 12, weight: .bold))
                     .foregroundColor(.green)
             }
@@ -182,74 +249,120 @@ public struct LoginView: View {
     // MARK: - Phone Step
     private var phoneStepView: some View {
         VStack(spacing: 20) {
-            // DC Gateway Selector (Direct DC 2 Russia)
+            // DC Gateway Selector (DC 4 Recommended & DC 2)
             VStack(alignment: .leading, spacing: 8) {
-                Text("ШЛЮЗ ПОДКЛЮЧЕНИЯ (БЕЗ VPN)")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(.gray)
+                HStack {
+                    Text("ШЛЮЗ СЕРВЕРА TELEGRAM")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.gray)
+                    Spacer()
+                    Text("⚡ Авто-миграция")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(.cyan)
+                }
                 
                 HStack(spacing: 10) {
-                    Button(action: { selectedDc = 2; SoundHapticManager.shared.playLightImpact() }) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "globe.europe.africa.fill")
-                            Text("🇷🇺 Россия (DC 2)")
-                                .font(.system(size: 13, weight: .bold, design: .rounded))
-                        }
-                        .foregroundColor(selectedDc == 2 ? .cyan : .gray)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(selectedDc == 2 ? Color.cyan.opacity(0.18) : Color.white.opacity(0.06))
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .stroke(selectedDc == 2 ? Color.cyan.opacity(0.4) : Color.white.opacity(0.1), lineWidth: 1)
-                        )
-                    }
-                    
-                    Button(action: { selectedDc = 4; SoundHapticManager.shared.playLightImpact() }) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "globe.americas.fill")
-                            Text("🌍 Мир (DC 4)")
-                                .font(.system(size: 13, weight: .bold, design: .rounded))
+                    // DC 4 Button (Default / Recommended)
+                    Button(action: {
+                        selectedDc = 4
+                        client.selectedDc = 4
+                        SoundHapticManager.shared.playLightImpact()
+                    }) {
+                        VStack(spacing: 4) {
+                            HStack(spacing: 5) {
+                                Image(systemName: "globe.americas.fill")
+                                Text("🌍 DC 4 (Мир)")
+                                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                            }
+                            Text("Рекомендуется")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundColor(selectedDc == 4 ? .cyan : .gray.opacity(0.8))
                         }
                         .foregroundColor(selectedDc == 4 ? .cyan : .gray)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
+                        .padding(.vertical, 10)
                         .background(selectedDc == 4 ? Color.cyan.opacity(0.18) : Color.white.opacity(0.06))
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                         .overlay(
                             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .stroke(selectedDc == 4 ? Color.cyan.opacity(0.4) : Color.white.opacity(0.1), lineWidth: 1)
+                                .stroke(selectedDc == 4 ? Color.cyan.opacity(0.5) : Color.white.opacity(0.1), lineWidth: 1.5)
+                        )
+                    }
+                    
+                    // DC 2 Button (Russia / CIS)
+                    Button(action: {
+                        selectedDc = 2
+                        client.selectedDc = 2
+                        SoundHapticManager.shared.playLightImpact()
+                    }) {
+                        VStack(spacing: 4) {
+                            HStack(spacing: 5) {
+                                Image(systemName: "globe.europe.africa.fill")
+                                Text("🇷🇺 DC 2 (РФ)")
+                                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                            }
+                            Text("Шлюз Москва")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundColor(selectedDc == 2 ? .cyan : .gray.opacity(0.8))
+                        }
+                        .foregroundColor(selectedDc == 2 ? .cyan : .gray)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(selectedDc == 2 ? Color.cyan.opacity(0.18) : Color.white.opacity(0.06))
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(selectedDc == 2 ? Color.cyan.opacity(0.5) : Color.white.opacity(0.1), lineWidth: 1.5)
                         )
                     }
                 }
             }
             
-            // Phone Input Field
+            // Beautiful Formatted Phone Input Field
             VStack(alignment: .leading, spacing: 8) {
                 Text("НОМЕР ТЕЛЕФОНА")
                     .font(.system(size: 11, weight: .bold))
                     .foregroundColor(.gray)
                 
                 HStack(spacing: 12) {
-                    Image(systemName: "phone.fill")
-                        .foregroundColor(.gray)
-                        .font(.system(size: 16))
+                    // Country Flag Badge
+                    Text(PhoneFormatter.flagForNumber(phoneNumber))
+                        .font(.system(size: 22))
                     
-                    TextField("+7 925 043 13 39", text: $phoneNumber)
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                    // Main Phone TextField with Auto-formatting
+                    TextField("+7 925 043 1339", text: $phoneNumber)
+                        .font(.system(size: 19, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                         .keyboardType(.phonePad)
+                        .onChange(of: phoneNumber) { newValue in
+                            let formatted = PhoneFormatter.format(newValue)
+                            if formatted != phoneNumber {
+                                phoneNumber = formatted
+                            }
+                        }
+                    
+                    // Clear Button
+                    if !phoneNumber.isEmpty && phoneNumber != "+7 " {
+                        Button(action: {
+                            phoneNumber = "+7 "
+                            SoundHapticManager.shared.playLightImpact()
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.gray)
+                                .font(.system(size: 16))
+                        }
+                    }
                 }
-                .padding(14)
-                .background(Color.white.opacity(0.07))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 14)
+                .background(Color.white.opacity(0.08))
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(Color.white.opacity(0.14), lineWidth: 1)
+                        .stroke(Color.cyan.opacity(0.3), lineWidth: 1.2)
                 )
                 
-                Text("Официальный код безопасности придет в приложение Telegram")
+                Text("Официальный проверочный код придет в приложение Telegram")
                     .font(.system(size: 11))
                     .foregroundColor(.gray)
             }
@@ -257,7 +370,8 @@ public struct LoginView: View {
             // Send Code Button
             Button(action: {
                 Task {
-                    let success = await client.sendCode(phoneNumber: phoneNumber, dc: selectedDc)
+                    let cleanPhone = PhoneFormatter.cleanDigits(phoneNumber)
+                    let success = await client.sendCode(phoneNumber: cleanPhone, dc: selectedDc)
                     if success {
                         withAnimation(.spring()) {
                             step = .code
@@ -313,21 +427,21 @@ public struct LoginView: View {
                 }
             }
             
-            // OTP Code Input
+            // OTP Code Input Field
             TextField("12345", text: $otpCode)
-                .font(.system(size: 32, weight: .heavy, design: .monospaced))
+                .font(.system(size: 34, weight: .heavy, design: .monospaced))
                 .foregroundColor(.white)
                 .multilineTextAlignment(.center)
                 .keyboardType(.numberPad)
                 .padding(16)
-                .background(Color.white.opacity(0.07))
+                .background(Color.white.opacity(0.08))
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(Color.cyan.opacity(0.5), lineWidth: 1.5)
+                        .stroke(Color.cyan.opacity(0.6), lineWidth: 1.5)
                 )
             
-            Text("Введите 5-значный проверочный код. Если код неверен — вход будет отклонен.")
+            Text("Введите 5 цифр из служебного сообщения от Telegram")
                 .font(.system(size: 11))
                 .foregroundColor(.gray)
                 .multilineTextAlignment(.center)
@@ -350,10 +464,9 @@ public struct LoginView: View {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
                     } else {
-                        Text("Подтвердить и войти")
+                        Image(systemName: "lock.open.fill")
+                        Text("Войти в Telegram")
                             .font(.system(size: 15, weight: .bold, design: .rounded))
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 14, weight: .bold))
                     }
                 }
                 .foregroundColor(.white)
@@ -361,7 +474,7 @@ public struct LoginView: View {
                 .padding(.vertical, 15)
                 .background(
                     LinearGradient(
-                        colors: [Color.green, Color(red: 0.15, green: 0.75, blue: 0.35)],
+                        colors: [Color.green.opacity(0.85), Color(red: 0.1, green: 0.7, blue: 0.4)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -369,29 +482,36 @@ public struct LoginView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                 .shadow(color: Color.green.opacity(0.35), radius: 10, x: 0, y: 5)
             }
-            .disabled(client.isLoading)
+            .disabled(client.isLoading || otpCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
     }
     
-    // MARK: - Password Step
+    // MARK: - 2FA Password Step
     private var passwordStepView: some View {
         VStack(spacing: 20) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("ОБЛАЧНЫЙ ПАРОЛЬ 2FA")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(.gray)
-                
-                SecureField("Ваш пароль 2-этапной защиты", text: $password2FA)
-                    .font(.system(size: 15, weight: .semibold))
+            VStack(spacing: 6) {
+                Image(systemName: "lock.shield.fill")
+                    .font(.system(size: 36))
+                    .foregroundColor(.yellow)
+                Text("Двухфакторная аутентификация")
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
-                    .padding(14)
-                    .background(Color.white.opacity(0.07))
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .stroke(Color.white.opacity(0.14), lineWidth: 1)
-                    )
+                Text("Введите облачный пароль от вашего аккаунта Telegram")
+                    .font(.system(size: 12))
+                    .foregroundColor(.gray)
+                    .multilineTextAlignment(.center)
             }
+            
+            SecureField("Ваш пароль 2FA", text: $password2FA)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(.white)
+                .padding(14)
+                .background(Color.white.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(Color.yellow.opacity(0.5), lineWidth: 1.2)
+                )
             
             Button(action: {
                 Task {
@@ -406,17 +526,19 @@ public struct LoginView: View {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
                     } else {
-                        Text("Войти с паролем")
+                        Text("Подтвердить пароль")
                             .font(.system(size: 15, weight: .bold, design: .rounded))
                     }
                 }
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 15)
-                .background(Color.blue)
+                .background(Color.yellow.opacity(0.85))
+                .foregroundColor(.black)
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .shadow(color: Color.yellow.opacity(0.3), radius: 10, x: 0, y: 5)
             }
-            .disabled(client.isLoading)
+            .disabled(client.isLoading || password2FA.isEmpty)
         }
     }
 }

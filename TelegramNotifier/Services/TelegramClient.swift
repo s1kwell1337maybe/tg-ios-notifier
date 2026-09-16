@@ -16,7 +16,7 @@ public final class TelegramClient: NSObject, ObservableObject, WKScriptMessageHa
     @Published public var stats: UnreadStats = UnreadStats()
     @Published public var notifications: [NotificationItem] = []
     
-    @Published public var selectedDc: Int = 2
+    @Published public var selectedDc: Int = 4
     @Published public var apiId: Int = 17349
     @Published public var apiHash: String = "344583e45741c457fe1862106095a5eb"
     
