@@ -56,6 +56,8 @@ public struct MainView: View {
                                 VStack(spacing: 16) {
                                     profileHeaderBar
                                     
+                                    AmneziaWarpCard()
+                                    
                                     GlowingCounterBadge(
                                         unreadCount: client.stats.totalUnreadMessages,
                                         totalChats: client.stats.totalUnreadChats,
@@ -86,6 +88,8 @@ public struct MainView: View {
                         ScrollView(showsIndicators: false) {
                             VStack(spacing: 16) {
                                 profileHeaderBar
+                                
+                                AmneziaWarpCard()
                                 
                                 GlowingCounterBadge(
                                     unreadCount: client.stats.totalUnreadMessages,

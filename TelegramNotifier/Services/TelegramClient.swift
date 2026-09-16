@@ -422,6 +422,25 @@ public final class TelegramClient: NSObject, ObservableObject, WKScriptMessageHa
         }
     }
     
+    // MARK: - Safe Reconnect
+    public func reconnect() {
+        self.connectionState = .connecting
+        self.isLoading = false
+        self.errorMessage = nil
+        let savedSession = UserDefaults.standard.string(forKey: "tg_saved_session") ?? ""
+        let escapedSession = savedSession
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "'", with: "\\'")
+        executeJS("window.initTelegram(\(apiId), '\(apiHash)', '\(escapedSession)', \(selectedDc));")
+        
+        Task {
+            try? await Task.sleep(nanoseconds: 6_000_000_000)
+            if self.connectionState == .connecting {
+                self.connectionState = .disconnected
+            }
+        }
+    }
+    
     public func logout() {
         self.currentUser = nil
         self.connectionState = .disconnected

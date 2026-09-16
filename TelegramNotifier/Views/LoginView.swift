@@ -249,6 +249,9 @@ public struct LoginView: View {
     // MARK: - Phone Step
     private var phoneStepView: some View {
         VStack(spacing: 20) {
+            // In-App Amnezia Warp VPN Launcher
+            AmneziaWarpCard()
+            
             // DC Gateway Selector (DC 4 Recommended & DC 2)
             VStack(alignment: .leading, spacing: 8) {
                 HStack {

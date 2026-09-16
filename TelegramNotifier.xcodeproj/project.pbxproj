@@ -25,6 +25,8 @@
 		1A0001102C90000100000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000112C90000100000001 /* Assets.xcassets */; };
 		1A0001112C90000100000001 /* TelegramLiveActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000122C90000100000001 /* TelegramLiveActivityAttributes.swift */; };
 		1A0001122C90000100000001 /* LiveActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000132C90000100000001 /* LiveActivityManager.swift */; };
+		1A0001132C90000100000001 /* AmneziaVPNManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000142C90000100000001 /* AmneziaVPNManager.swift */; };
+		1A0001142C90000100000001 /* AmneziaWarpCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000152C90000100000001 /* AmneziaWarpCard.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -48,6 +50,8 @@
 		1A0000112C90000100000001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1A0000122C90000100000001 /* TelegramLiveActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelegramLiveActivityAttributes.swift; sourceTree = "<group>"; };
 		1A0000132C90000100000001 /* LiveActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityManager.swift; sourceTree = "<group>"; };
+		1A0000142C90000100000001 /* AmneziaVPNManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmneziaVPNManager.swift; sourceTree = "<group>"; };
+		1A0000152C90000100000001 /* AmneziaWarpCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmneziaWarpCard.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -109,6 +113,7 @@
 				1A00000E2C90000100000001 /* TLSerialization.swift */,
 				1A0000122C90000100000001 /* TelegramLiveActivityAttributes.swift */,
 				1A0000132C90000100000001 /* LiveActivityManager.swift */,
+				1A0000142C90000100000001 /* AmneziaVPNManager.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -131,6 +136,7 @@
 				1A00000A2C90000100000001 /* GlowingCounterBadge.swift */,
 				1A00000B2C90000100000001 /* CategoryStatCard.swift */,
 				1A00000C2C90000100000001 /* NotificationRow.swift */,
+				1A0000152C90000100000001 /* AmneziaWarpCard.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -230,6 +236,8 @@
 				1A00010D2C90000100000001 /* TLSerialization.swift in Sources */,
 				1A0001112C90000100000001 /* TelegramLiveActivityAttributes.swift in Sources */,
 				1A0001122C90000100000001 /* LiveActivityManager.swift in Sources */,
+				1A0001132C90000100000001 /* AmneziaVPNManager.swift in Sources */,
+				1A0001142C90000100000001 /* AmneziaWarpCard.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
