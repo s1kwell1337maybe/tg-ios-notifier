@@ -43,14 +43,25 @@ window.sendToNative = function (type: string, payload: any) {
   }
 };
 
+function withTimeout<T>(promise: Promise<T>, ms: number, errorMsg: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(errorMsg)), ms))
+  ]);
+}
+
 async function createClient(apiId: number, apiHash: string, dcId: number, sessionStr: string = '') {
   const session = new StringSession(sessionStr || '');
-  const dc = Number(dcId) || 4;
-  const server = DC_SERVERS[dc] || 'vesta.web.telegram.org';
-  session.setDC(dc, server, 443);
+  
+  // Only manually set DC if creating a new fresh session (not restoring existing session)
+  if (!sessionStr || sessionStr.trim().length === 0) {
+    const dc = Number(dcId) || 4;
+    const server = DC_SERVERS[dc] || 'vesta.web.telegram.org';
+    session.setDC(dc, server, 443);
+  }
 
   const client = new TelegramClient(session, Number(apiId), apiHash, {
-    connectionRetries: 10,
+    connectionRetries: 5,
     useWSS: true,
     deviceModel: 'Apple iPhone (Native iOS)',
     systemVersion: 'iOS 18.0',
@@ -59,22 +70,29 @@ async function createClient(apiId: number, apiHash: string, dcId: number, sessio
     systemLangCode: 'ru',
   });
 
-  await client.connect();
+  await withTimeout(client.connect(), 10000, 'Connection timeout');
   return client;
 }
 
 window.initTelegram = async function (apiId: number, apiHash: string, sessionStr: string, dcId: number) {
+  if (!sessionStr || sessionStr.trim().length === 0) {
+    window.sendToNative('DISCONNECTED', {});
+    return;
+  }
+
   try {
     if (window.tgBridgeClient) {
       try { await window.tgBridgeClient.disconnect(); } catch {}
+      window.tgBridgeClient = null;
     }
 
+    console.log('Restoring saved Telegram session...');
     const client = await createClient(Number(apiId), apiHash, Number(dcId) || 4, sessionStr);
     window.tgBridgeClient = client;
     window.currentDc = Number(dcId) || 4;
     window.sendToNative('CONNECTED', { dc: window.currentDc });
 
-    const isAuth = await client.checkAuthorization();
+    const isAuth = await withTimeout(client.checkAuthorization(), 8000, 'Authorization check timeout');
     if (isAuth) {
       const me: any = await client.getMe();
       const savedSession = client.session.save() as unknown as string;
@@ -89,6 +107,9 @@ window.initTelegram = async function (apiId: number, apiHash: string, sessionStr
       });
       setupListener(client);
       window.fetchUnreads();
+    } else {
+      console.warn('Session expired or revoked.');
+      window.sendToNative('SESSION_EXPIRED', {});
     }
   } catch (err: any) {
     console.error('initTelegram error:', err);
@@ -100,52 +121,50 @@ window.sendCode = async function (phone: string, apiId: number, apiHash: string,
   let targetDc = Number(initialDcId) || 4;
   const cleanPhone = phone.replace(/[^\d+]/g, '').trim();
 
-  for (let attempt = 0; attempt < 4; attempt++) {
+  for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      console.log(`Attempting sendCode on DC ${targetDc} for ${cleanPhone}...`);
+      console.log(`sendCode attempt #${attempt + 1} on DC ${targetDc} for ${cleanPhone}...`);
       if (window.tgBridgeClient) {
         try { await window.tgBridgeClient.disconnect(); } catch {}
+        window.tgBridgeClient = null;
       }
 
       const client = await createClient(Number(apiId), apiHash, targetDc, '');
       window.tgBridgeClient = client;
       window.currentDc = targetDc;
 
-      const res = await client.sendCode(
-        {
-          apiId: Number(apiId),
-          apiHash: apiHash,
-        },
-        cleanPhone
+      const res = await withTimeout(
+        client.sendCode(
+          {
+            apiId: Number(apiId),
+            apiHash: apiHash,
+          },
+          cleanPhone
+        ),
+        15000,
+        'SendCode request timeout'
       );
 
       window.phoneCodeHash = res.phoneCodeHash;
       window.sendToNative('CODE_SENT', { phoneCodeHash: res.phoneCodeHash, dc: targetDc });
       return;
     } catch (err: any) {
-      console.error(`sendCode failed on DC ${targetDc}:`, err);
+      console.error(`sendCode on DC ${targetDc} failed:`, err);
       const msg = err?.message || err?.errorMessage || String(err);
 
-      // Auto DC Migration Detection (PHONE_MIGRATE_X, NETWORK_MIGRATE_X, USER_MIGRATE_X)
+      // Auto DC Migration
       const match = msg.match(/(?:PHONE|NETWORK|USER)_MIGRATE_(\d+)/i);
       if (match && match[1]) {
         const newDc = parseInt(match[1], 10);
-        console.log(`Telegram requested migration from DC ${targetDc} -> DC ${newDc}`);
+        console.log(`Auto migrating to DC ${newDc}...`);
         targetDc = newDc;
         continue;
       }
 
-      // If failed on DC 2 due to connection timeout or network issue, fallback to DC 4
-      if (targetDc === 2 && (msg.includes('TIMEOUT') || msg.includes('network') || msg.includes('Failed to fetch') || msg.includes('CONNECTION'))) {
+      // Auto Fallback on connection errors
+      if (targetDc === 2 && (msg.includes('timeout') || msg.includes('network') || msg.includes('Failed to fetch') || msg.includes('Connection'))) {
         console.log('DC 2 connection issue, retrying on DC 4...');
         targetDc = 4;
-        continue;
-      }
-
-      // If failed on DC 4 due to connection, try DC 2 as alternate
-      if (targetDc === 4 && attempt === 0 && (msg.includes('TIMEOUT') || msg.includes('CONNECTION'))) {
-        console.log('DC 4 timeout, trying DC 2...');
-        targetDc = 2;
         continue;
       }
 
@@ -162,23 +181,31 @@ window.signIn = async function (phone: string, code: string, password?: string) 
     const cleanPhone = phone.replace(/[^\d+]/g, '').trim();
 
     if (password) {
-      await client.signInWithPassword(
-        {
-          apiId: 17349,
-          apiHash: '344583e45741c457fe1862106095a5eb',
-        },
-        {
-          password: async () => password,
-          onError: (err) => console.error('2FA error:', err),
-        }
+      await withTimeout(
+        client.signInWithPassword(
+          {
+            apiId: 17349,
+            apiHash: '344583e45741c457fe1862106095a5eb',
+          },
+          {
+            password: async () => password,
+            onError: (err) => console.error('2FA error:', err),
+          }
+        ),
+        15000,
+        '2FA sign in timeout'
       );
     } else {
-      await client.invoke(
-        new Api.auth.SignIn({
-          phoneNumber: cleanPhone,
-          phoneCodeHash: window.phoneCodeHash,
-          phoneCode: code.trim(),
-        })
+      await withTimeout(
+        client.invoke(
+          new Api.auth.SignIn({
+            phoneNumber: cleanPhone,
+            phoneCodeHash: window.phoneCodeHash,
+            phoneCode: code.trim(),
+          })
+        ),
+        15000,
+        'Sign in request timeout'
       );
     }
 
@@ -274,9 +301,16 @@ window.fetchUnreads = async function () {
 window.logOut = async function () {
   try {
     if (window.tgBridgeClient) {
-      await window.tgBridgeClient.invoke(new Api.auth.LogOut());
+      try {
+        await Promise.race([
+          window.tgBridgeClient.invoke(new Api.auth.LogOut()),
+          new Promise((r) => setTimeout(r, 2000))
+        ]);
+      } catch {}
+      try { await window.tgBridgeClient.disconnect(); } catch {}
       window.tgBridgeClient = null;
     }
+    window.phoneCodeHash = '';
     window.sendToNative('LOGOUT_SUCCESS', {});
   } catch {}
 };

@@ -65,6 +65,8 @@ public final class TelegramClient: NSObject, ObservableObject, WKScriptMessageHa
                 phone: savedPhone
             )
             self.connectionState = .connecting
+        } else {
+            self.connectionState = .disconnected
         }
     }
     
@@ -127,6 +129,8 @@ public final class TelegramClient: NSObject, ObservableObject, WKScriptMessageHa
                     .replacingOccurrences(of: "\\", with: "\\\\")
                     .replacingOccurrences(of: "'", with: "\\'")
                 executeJS("window.initTelegram(\(apiId), '\(apiHash)', '\(escapedSession)', \(selectedDc));")
+            } else {
+                self.connectionState = .disconnected
             }
             
         case "CONNECTED":
@@ -219,6 +223,34 @@ public final class TelegramClient: NSObject, ObservableObject, WKScriptMessageHa
             SoundHapticManager.shared.playErrorFeedback()
             self.pendingSignInContinuation?.resume(returning: false)
             self.pendingSignInContinuation = nil
+            
+        case "ERROR":
+            self.isLoading = false
+            self.connectionState = .disconnected
+            let msg = payload["message"] as? String ?? ""
+            if msg.contains("AUTH_KEY_UNREGISTERED") || msg.contains("SESSION_REVOKED") || msg.contains("timeout") || msg.contains("SESSION_EXPIRED") {
+                self.currentUser = nil
+                UserDefaults.standard.removeObject(forKey: "tg_saved_session")
+                UserDefaults.standard.removeObject(forKey: "tg_saved_user_id")
+            }
+            self.pendingSendCodeContinuation?.resume(returning: false)
+            self.pendingSendCodeContinuation = nil
+            self.pendingSignInContinuation?.resume(returning: false)
+            self.pendingSignInContinuation = nil
+            
+        case "SESSION_EXPIRED", "DISCONNECTED":
+            self.isLoading = false
+            self.connectionState = .disconnected
+            self.currentUser = nil
+            UserDefaults.standard.removeObject(forKey: "tg_saved_session")
+            UserDefaults.standard.removeObject(forKey: "tg_saved_user_id")
+            
+        case "LOGOUT_SUCCESS":
+            self.isLoading = false
+            self.connectionState = .disconnected
+            self.currentUser = nil
+            self.isCodeSent = false
+            self.requires2FA = false
             
         case "NEW_MESSAGE":
             let rawType = payload["chatType"] as? String ?? "private"
