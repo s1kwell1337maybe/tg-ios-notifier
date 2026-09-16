@@ -5,69 +5,105 @@ public struct MainView: View {
     @State private var showLoginSheet: Bool = false
     @State private var showSettingsSheet: Bool = false
     
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    
     public init() {}
     
     public var body: some View {
-        ZStack {
-            // Dark iOS Premium Background
-            LinearGradient(
-                colors: [
-                    Color(red: 0.04, green: 0.06, blue: 0.11),
-                    Color(red: 0.07, green: 0.10, blue: 0.17),
-                    Color(red: 0.03, green: 0.05, blue: 0.09)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+        GeometryReader { geometry in
+            let isWide = geometry.size.width > 700 || (horizontalSizeClass == .regular && geometry.size.width > geometry.size.height)
             
-            // Background Radial Glow Orbs
-            GeometryReader { proxy in
+            ZStack {
+                // Dark iOS Premium Background
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.04, green: 0.06, blue: 0.11),
+                        Color(red: 0.07, green: 0.10, blue: 0.17),
+                        Color(red: 0.03, green: 0.05, blue: 0.09)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
+                
+                // Background Radial Glow Orbs
                 ZStack {
                     Circle()
-                        .fill(Color.blue.opacity(0.12))
-                        .frame(width: proxy.size.width * 0.8)
-                        .blur(radius: 60)
-                        .offset(x: -proxy.size.width * 0.2, y: -proxy.size.height * 0.1)
+                        .fill(Color.cyan.opacity(0.12))
+                        .frame(width: geometry.size.width * 0.6)
+                        .blur(radius: 70)
+                        .offset(x: -geometry.size.width * 0.25, y: -geometry.size.height * 0.2)
                     
                     Circle()
-                        .fill(Color.red.opacity(0.08))
-                        .frame(width: proxy.size.width * 0.7)
-                        .blur(radius: 70)
-                        .offset(x: proxy.size.width * 0.3, y: proxy.size.height * 0.3)
+                        .fill(Color.blue.opacity(0.10))
+                        .frame(width: geometry.size.width * 0.6)
+                        .blur(radius: 80)
+                        .offset(x: geometry.size.width * 0.25, y: geometry.size.height * 0.2)
                 }
-            }
-            .ignoresSafeArea()
-            
-            VStack(spacing: 0) {
-                // Top iOS Dynamic Island Capsule
-                DynamicIslandCapsule(client: client)
-                    .padding(.top, 10)
-                    .padding(.bottom, 12)
+                .ignoresSafeArea()
                 
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 16) {
-                        // User Profile / Login Top Bar
-                        profileHeaderBar
-                        
-                        // Hero Unread Glowing Counter Widget
-                        GlowingCounterBadge(
-                            unreadCount: client.stats.totalUnreadMessages,
-                            totalChats: client.stats.totalUnreadChats,
-                            lastUpdated: client.stats.lastUpdated,
-                            isLoggedIn: client.currentUser != nil,
-                            onTestTap: triggerTestNotification,
-                            onLoginTap: { showLoginSheet = true }
-                        )
-                        
-                        // 2x2 Categories Grid
-                        categoriesGrid
-                        
-                        // Live Notifications Feed Section
-                        notificationsFeedSection
+                VStack(spacing: 0) {
+                    // Top Dynamic Island Capsule (Floating)
+                    DynamicIslandCapsule(client: client)
+                        .padding(.top, 8)
+                        .padding(.bottom, 10)
+                    
+                    if isWide {
+                        // iPad & Landscape 2-Column Dashboard Layout
+                        HStack(alignment: .top, spacing: 20) {
+                            // Left Column (Controls, Hero Badge, Categories)
+                            ScrollView(showsIndicators: false) {
+                                VStack(spacing: 16) {
+                                    profileHeaderBar
+                                    
+                                    GlowingCounterBadge(
+                                        unreadCount: client.stats.totalUnreadMessages,
+                                        totalChats: client.stats.totalUnreadChats,
+                                        lastUpdated: client.stats.lastUpdated,
+                                        isLoggedIn: client.currentUser != nil,
+                                        onTestTap: triggerTestNotification,
+                                        onLoginTap: { showLoginSheet = true }
+                                    )
+                                    
+                                    categoriesGrid
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.bottom, 30)
+                            }
+                            .frame(maxWidth: geometry.size.width * 0.48)
+                            
+                            // Right Column (Live Notification Feed)
+                            ScrollView(showsIndicators: false) {
+                                VStack(spacing: 16) {
+                                    notificationsFeedSection
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.bottom, 30)
+                            }
+                        }
+                    } else {
+                        // iPhone / Portrait Single Column Layout
+                        ScrollView(showsIndicators: false) {
+                            VStack(spacing: 16) {
+                                profileHeaderBar
+                                
+                                GlowingCounterBadge(
+                                    unreadCount: client.stats.totalUnreadMessages,
+                                    totalChats: client.stats.totalUnreadChats,
+                                    lastUpdated: client.stats.lastUpdated,
+                                    isLoggedIn: client.currentUser != nil,
+                                    onTestTap: triggerTestNotification,
+                                    onLoginTap: { showLoginSheet = true }
+                                )
+                                
+                                categoriesGrid
+                                
+                                notificationsFeedSection
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 40)
+                        }
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 40)
                 }
             }
         }

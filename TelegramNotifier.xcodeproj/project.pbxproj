@@ -22,6 +22,9 @@
 		1A00010D2C90000100000001 /* TLSerialization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000E2C90000100000001 /* TLSerialization.swift */; };
 		1A00010E2C90000100000001 /* telegram_engine.js in Resources */ = {isa = PBXBuildFile; fileRef = 1A00000F2C90000100000001 /* telegram_engine.js */; };
 		1A00010F2C90000100000001 /* engine.html in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000102C90000100000001 /* engine.html */; };
+		1A0001102C90000100000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000112C90000100000001 /* Assets.xcassets */; };
+		1A0001112C90000100000001 /* TelegramLiveActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000122C90000100000001 /* TelegramLiveActivityAttributes.swift */; };
+		1A0001122C90000100000001 /* LiveActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000132C90000100000001 /* LiveActivityManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -42,6 +45,9 @@
 		1A00000E2C90000100000001 /* TLSerialization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TLSerialization.swift; sourceTree = "<group>"; };
 		1A00000F2C90000100000001 /* telegram_engine.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = telegram_engine.js; sourceTree = "<group>"; };
 		1A0000102C90000100000001 /* engine.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = engine.html; sourceTree = "<group>"; };
+		1A0000112C90000100000001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		1A0000122C90000100000001 /* TelegramLiveActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelegramLiveActivityAttributes.swift; sourceTree = "<group>"; };
+		1A0000132C90000100000001 /* LiveActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -71,6 +77,7 @@
 				1A0000322C90000100000000 /* Services */,
 				1A0000332C90000100000000 /* Views */,
 				1A0000352C90000100000000 /* Resources */,
+				1A0000112C90000100000001 /* Assets.xcassets */,
 				1A00000D2C90000100000001 /* Info.plist */,
 			);
 			path = TelegramNotifier;
@@ -100,6 +107,8 @@
 				1A0000042C90000100000001 /* SoundHapticManager.swift */,
 				1A0000052C90000100000001 /* LocalPushManager.swift */,
 				1A00000E2C90000100000001 /* TLSerialization.swift */,
+				1A0000122C90000100000001 /* TelegramLiveActivityAttributes.swift */,
+				1A0000132C90000100000001 /* LiveActivityManager.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -195,6 +204,7 @@
 			files = (
 				1A00010E2C90000100000001 /* telegram_engine.js in Resources */,
 				1A00010F2C90000100000001 /* engine.html in Resources */,
+				1A0001102C90000100000001 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -218,6 +228,8 @@
 				1A00010B2C90000100000001 /* CategoryStatCard.swift in Sources */,
 				1A00010C2C90000100000001 /* NotificationRow.swift in Sources */,
 				1A00010D2C90000100000001 /* TLSerialization.swift in Sources */,
+				1A0001112C90000100000001 /* TelegramLiveActivityAttributes.swift in Sources */,
+				1A0001122C90000100000001 /* LiveActivityManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

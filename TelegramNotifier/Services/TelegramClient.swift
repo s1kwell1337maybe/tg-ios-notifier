@@ -5,7 +5,7 @@ import Combine
 
 // MARK: - Real MTProto 2.0 Native Bridge Client
 // Runs fully bundled Telegram MTProto Web engine locally inside native iOS WebKit WKWebView
-// Communicates directly with Telegram DC 2 (Russia/CIS) & DC 4 over TLS WSS without VPN.
+// Supports Direct MTProto & Anti-Censorship Edge Relay without VPN.
 
 @MainActor
 public final class TelegramClient: NSObject, ObservableObject, WKScriptMessageHandler, WKNavigationDelegate {
@@ -38,7 +38,34 @@ public final class TelegramClient: NSObject, ObservableObject, WKScriptMessageHa
     
     override private init() {
         super.init()
+        loadSavedSession()
         setupEngine()
+    }
+    
+    // MARK: - Persistent Session Restoration
+    private func loadSavedSession() {
+        let savedSession = UserDefaults.standard.string(forKey: "tg_saved_session") ?? ""
+        let savedUserId = UserDefaults.standard.string(forKey: "tg_saved_user_id") ?? ""
+        let savedFirstName = UserDefaults.standard.string(forKey: "tg_saved_user_first_name") ?? ""
+        let savedLastName = UserDefaults.standard.string(forKey: "tg_saved_user_last_name")
+        let savedUsername = UserDefaults.standard.string(forKey: "tg_saved_user_username")
+        let savedPhone = UserDefaults.standard.string(forKey: "tg_saved_user_phone")
+        let savedDc = UserDefaults.standard.integer(forKey: "tg_saved_dc")
+        
+        if savedDc > 0 {
+            self.selectedDc = savedDc
+        }
+        
+        if !savedSession.isEmpty && !savedUserId.isEmpty {
+            self.currentUser = TelegramUser(
+                id: savedUserId,
+                firstName: savedFirstName.isEmpty ? "Telegram User" : savedFirstName,
+                lastName: savedLastName,
+                username: savedUsername,
+                phone: savedPhone
+            )
+            self.connectionState = .connecting
+        }
     }
     
     private func setupEngine() {
@@ -54,7 +81,6 @@ public final class TelegramClient: NSObject, ObservableObject, WKScriptMessageHa
         wv.navigationDelegate = self
         self.webView = wv
         
-        // Priority 1: Load local bundled engine.html from iOS Bundle
         if let htmlURL = Bundle.main.url(forResource: "engine", withExtension: "html") {
             wv.loadFileURL(htmlURL, allowingReadAccessTo: htmlURL.deletingLastPathComponent())
         } else if let jsURL = Bundle.main.url(forResource: "telegram_engine", withExtension: "js"),
@@ -68,16 +94,11 @@ public final class TelegramClient: NSObject, ObservableObject, WKScriptMessageHa
             """
             wv.loadHTMLString(inlineHTML, baseURL: URL(string: "https://web.telegram.org"))
         } else {
-            // Priority 2: Fallback to reading from local Resources directory relative to bundle
             let fallbackHTML = """
             <!DOCTYPE html>
             <html>
             <head><meta charset="utf-8"></head>
-            <body>
-                <script>
-                    console.log('Loading Telegram Engine...');
-                </script>
-            </body>
+            <body></body>
             </html>
             """
             wv.loadHTMLString(fallbackHTML, baseURL: URL(string: "https://web.telegram.org"))
@@ -110,11 +131,19 @@ public final class TelegramClient: NSObject, ObservableObject, WKScriptMessageHa
             
         case "CONNECTED":
             self.connectionState = .connected
+            if let dc = payload["dc"] as? Int {
+                self.selectedDc = dc
+                UserDefaults.standard.set(dc, forKey: "tg_saved_dc")
+            }
             
         case "CODE_SENT":
             self.isLoading = false
             self.isCodeSent = true
             self.errorMessage = nil
+            if let dc = payload["dc"] as? Int {
+                self.selectedDc = dc
+                UserDefaults.standard.set(dc, forKey: "tg_saved_dc")
+            }
             SoundHapticManager.shared.playSuccessFeedback()
             self.pendingSendCodeContinuation?.resume(returning: true)
             self.pendingSendCodeContinuation = nil
@@ -123,7 +152,7 @@ public final class TelegramClient: NSObject, ObservableObject, WKScriptMessageHa
             self.isLoading = false
             let msg = payload["message"] as? String ?? "Ошибка отправки кода"
             if msg.contains("PHONE_NUMBER_INVALID") {
-                self.errorMessage = "Неверный формат номера телефона (пример: +79250431339)"
+                self.errorMessage = "Неверный формат номера телефона (пример: +7 925 043 1339)"
             } else if msg.contains("FLOOD_WAIT") {
                 self.errorMessage = "Слишком много попыток. Пожалуйста, подождите несколько минут"
             } else {
@@ -151,7 +180,19 @@ public final class TelegramClient: NSObject, ObservableObject, WKScriptMessageHa
             
             if let sessionStr = payload["session"] as? String {
                 UserDefaults.standard.set(sessionStr, forKey: "tg_saved_session")
+                UserDefaults.standard.set(user.id, forKey: "tg_saved_user_id")
+                UserDefaults.standard.set(user.firstName, forKey: "tg_saved_user_first_name")
+                UserDefaults.standard.set(user.lastName ?? "", forKey: "tg_saved_user_last_name")
+                UserDefaults.standard.set(user.username ?? "", forKey: "tg_saved_user_username")
+                UserDefaults.standard.set(user.phone ?? "", forKey: "tg_saved_user_phone")
+                UserDefaults.standard.set(self.selectedDc, forKey: "tg_saved_dc")
             }
+            
+            LiveActivityManager.shared.startOrUpdateLiveActivity(
+                unreadCount: self.stats.totalUnreadMessages,
+                lastSender: user.displayName,
+                lastMessage: "Подключено к Telegram MTProto"
+            )
             
             SoundHapticManager.shared.playSuccessFeedback()
             self.pendingSignInContinuation?.resume(returning: true)
@@ -169,7 +210,7 @@ public final class TelegramClient: NSObject, ObservableObject, WKScriptMessageHa
             self.isLoading = false
             let msg = payload["message"] as? String ?? "Ошибка проверки кода"
             if msg.contains("PHONE_CODE_INVALID") {
-                self.errorMessage = "Неверный код подтверждения (PHONE_CODE_INVALID). Проверьте сообщение в Telegram"
+                self.errorMessage = "Неверный код подтверждения. Проверьте сообщение в Telegram"
             } else if msg.contains("PHONE_CODE_EXPIRED") {
                 self.errorMessage = "Срок действия кода истек. Запросите код заново"
             } else {
@@ -204,6 +245,13 @@ public final class TelegramClient: NSObject, ObservableObject, WKScriptMessageHa
                 badgeCount: self.stats.totalUnreadMessages + 1
             )
             
+            LiveActivityManager.shared.startOrUpdateLiveActivity(
+                unreadCount: self.stats.totalUnreadMessages + 1,
+                lastSender: item.senderName,
+                lastMessage: item.messageText,
+                chatTitle: item.chatTitle
+            )
+            
         case "UNREAD_STATS":
             var newStats = UnreadStats()
             newStats.totalUnreadMessages = payload["totalUnreadMessages"] as? Int ?? 0
@@ -218,6 +266,12 @@ public final class TelegramClient: NSObject, ObservableObject, WKScriptMessageHa
                 self.stats = newStats
             }
             LocalPushManager.shared.updateBadge(count: newStats.totalUnreadMessages)
+            
+            LiveActivityManager.shared.startOrUpdateLiveActivity(
+                unreadCount: newStats.totalUnreadMessages,
+                lastSender: self.currentUser?.displayName ?? "Telegram",
+                lastMessage: "Непрочитанных: \(newStats.totalUnreadMessages)"
+            )
             
         default:
             break
@@ -314,6 +368,13 @@ public final class TelegramClient: NSObject, ObservableObject, WKScriptMessageHa
             body: text,
             badgeCount: self.stats.totalUnreadMessages
         )
+        
+        LiveActivityManager.shared.startOrUpdateLiveActivity(
+            unreadCount: self.stats.totalUnreadMessages,
+            lastSender: sender,
+            lastMessage: text,
+            chatTitle: chatTitle
+        )
     }
     
     public func clearNotifications() {
@@ -335,6 +396,12 @@ public final class TelegramClient: NSObject, ObservableObject, WKScriptMessageHa
         self.isCodeSent = false
         self.requires2FA = false
         UserDefaults.standard.removeObject(forKey: "tg_saved_session")
+        UserDefaults.standard.removeObject(forKey: "tg_saved_user_id")
+        UserDefaults.standard.removeObject(forKey: "tg_saved_user_first_name")
+        UserDefaults.standard.removeObject(forKey: "tg_saved_user_last_name")
+        UserDefaults.standard.removeObject(forKey: "tg_saved_user_username")
+        UserDefaults.standard.removeObject(forKey: "tg_saved_user_phone")
+        LiveActivityManager.shared.endLiveActivity()
         executeJS("window.logOut();")
     }
 }
